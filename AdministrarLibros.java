@@ -10,7 +10,8 @@ import java.sql.DriverManager;
 import javax.swing.table.DefaultTableModel;
 import java.sql.ResultSet;
 import javax.swing.table.TableModel;
-
+import java.sql.PreparedStatement;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -22,7 +23,7 @@ public class AdministrarLibros extends javax.swing.JFrame {
      * Creates new form AdministrarLibros
      */
     
-    String libro_nombre, autor;
+    String libroNombre, autor;
     int libroId, cantidad;
     DefaultTableModel model;
     public AdministrarLibros() {
@@ -38,20 +39,122 @@ public class AdministrarLibros extends javax.swing.JFrame {
             Statement st = (Statement) con.createStatement();
             ResultSet rs = st.executeQuery("select * from libro_detalles");
              
-            while(rs.next()){
-                String libroId  = rs.getString("libro_id");
-                String libroNombre  = rs.getString("libro_nombre");
-                String autor  = rs.getString("autor");
-                int cantidad  = rs.getInt("cantidad");
+            while(rs.next()){//This loop iterates through the rows of the result set (rs). Each iteration represents a row in the database table.
+                //Inside the loop, data from each column of the current row is extracted using methods like rs.getString and rs.getInt.
                 
+                String libroId  = rs.getString("libro_id");//libroId: Retrieves the value of the "libro_id" column as a string.
+                String libroNombre  = rs.getString("libro_nombre");//libroNombre: Retrieves the value of the "libro_nombre" column as a string.
+                String autor  = rs.getString("autor");//Retrieves the value of the "autor" column as a string.
+                int cantidad  = rs.getInt("cantidad");//Retrieves the value of the "cantidad" column as an integer.
+                
+                /*The extracted values are then used to create an object array (Object[] obj), where each element of the array corresponds to 
+                a column in the database table. 
+                The order of elements in the array matches the order in which the columns were retrieved from the result set.*/
                 Object [] obj = {libroId, libroNombre, autor, cantidad};
                 model = (DefaultTableModel)tbl_DetallesLibros.getModel();
                 model.addRow(obj);
+                
+                /*In summary, this code fetches details of books from a database table ("libro_detalles") 
+                        and dynamically adds rows to a JTable (tbl_DetallesLibros) in a Swing GUI application.
+                                Each row in the JTable represents a book, and the columns in the table correspond to
+                                        the attributes of the books (e.g., libroId, libroNombre, autor, cantidad).*/
             }
         }catch(Exception e){
             e.printStackTrace();
         }
     
+    }
+    
+    //agregar libros a tbl_DetallesLibros
+    public boolean agregarLibro(){
+        boolean estaAgregado = false;    
+        libroId = Integer.parseInt(txt_LibroId.getText());
+        libroNombre  = txt_LibroNombre.getText();
+        autor  = txt_Autor.getText();
+        cantidad = Integer.parseInt(txt_Cantidad.getText());
+        
+        try{
+            Connection con = DBConnection.getConnection();
+            String sql = "Insert into libro_detalles values(?,?,?,?)";
+            PreparedStatement pst = con.prepareStatement(sql);
+            pst.setInt(1, libroId);
+            pst.setString(2, libroNombre);
+            pst.setString(3, autor);
+            pst.setInt(4, cantidad);
+            
+            int rowCount = pst.executeUpdate();
+            if(rowCount >0){
+                estaAgregado = true;
+            }else{
+                estaAgregado = false;
+            }
+            
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return estaAgregado;
+    }
+    
+    //actualizar registro de libros
+    public boolean actualizarLibros(){
+        
+        boolean estaActualizado = false;
+        libroId = Integer.parseInt(txt_LibroId.getText());
+        libroNombre = txt_LibroNombre.getText();
+        autor = txt_Autor.getText();
+        cantidad = Integer.parseInt(txt_Cantidad.getText());
+        
+        try{
+        
+            Connection con = DBConnection.getConnection();
+            String sql = "update libro_detalles set libro_nombre = ?, autor = ?, cantidad = ? where libro_id = ?";
+            PreparedStatement pst = con.prepareStatement(sql);
+            pst.setString(1, libroNombre);
+            pst.setString(2, autor);
+            pst.setInt(3, cantidad);
+            pst.setInt(4, libroId);
+            
+            int rowCount = pst.executeUpdate();
+            
+            if(rowCount >0){
+                estaActualizado = true;
+            }else{
+                estaActualizado = false;
+            }
+            
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return estaActualizado;
+    }
+    
+    //metodo para eliminar detalles de libro
+    public boolean eliminarLibro(){
+        boolean estaEliminado = false;
+        libroId = Integer.parseInt(txt_LibroId.getText());
+        
+        try{
+            Connection con = DBConnection.getConnection();
+            String sql = "delete from libro_detalles where libro_id = ?";
+            PreparedStatement pst = con.prepareStatement(sql);
+            pst.setInt(1, libroId);
+            
+            int rowCount = pst.executeUpdate();
+            if(rowCount >0){
+                estaEliminado = true;
+            }else{
+                estaEliminado = false;
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return estaEliminado;
+    }
+    //metodo para limpiar tabla
+    public void limpiarTabla(){
+        
+        DefaultTableModel model = (DefaultTableModel) tbl_DetallesLibros.getModel();
+        model.setRowCount(0);
     }
 
     /**
@@ -198,6 +301,11 @@ public class AdministrarLibros extends javax.swing.JFrame {
 
         rSMaterialButtonCircle1.setBackground(new java.awt.Color(255, 51, 51));
         rSMaterialButtonCircle1.setText("Borrar");
+        rSMaterialButtonCircle1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                rSMaterialButtonCircle1ActionPerformed(evt);
+            }
+        });
         jPanel1.add(rSMaterialButtonCircle1, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 570, 120, -1));
 
         rSMaterialButtonCircle2.setBackground(new java.awt.Color(255, 51, 51));
@@ -333,11 +441,23 @@ public class AdministrarLibros extends javax.swing.JFrame {
     }//GEN-LAST:event_txt_CantidadActionPerformed
 
     private void rSMaterialButtonCircle2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rSMaterialButtonCircle2ActionPerformed
-        // TODO add your handling code here:
+      if(agregarLibro()==true){
+          JOptionPane.showMessageDialog(this, "Libro agregado");
+          limpiarTabla();
+          detallesDeLibrosATablas();
+      }else{
+          JOptionPane.showMessageDialog(this, "Adicion de libro fallido");
+      }
     }//GEN-LAST:event_rSMaterialButtonCircle2ActionPerformed
 
     private void rSMaterialButtonCircle3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rSMaterialButtonCircle3ActionPerformed
-        // TODO add your handling code here:
+        if(actualizarLibros()==true){
+          JOptionPane.showMessageDialog(this, "Actualizado");
+          limpiarTabla();
+          detallesDeLibrosATablas();
+      }else{
+          JOptionPane.showMessageDialog(this, "Error al actualizar");
+      }
     }//GEN-LAST:event_rSMaterialButtonCircle3ActionPerformed
 
     private void jLabel2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel2MouseClicked
@@ -353,6 +473,16 @@ public class AdministrarLibros extends javax.swing.JFrame {
         txt_Autor.setText(model.getValueAt(rowNo,2).toString());
         txt_Cantidad.setText(model.getValueAt(rowNo,3).toString());
     }//GEN-LAST:event_tbl_DetallesLibrosMouseClicked
+
+    private void rSMaterialButtonCircle1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rSMaterialButtonCircle1ActionPerformed
+        if(eliminarLibro()==true){
+          JOptionPane.showMessageDialog(this, "Libro eliminado");
+          limpiarTabla();
+          detallesDeLibrosATablas();
+      }else{
+          JOptionPane.showMessageDialog(this, "Error al eliminar");
+      }
+    }//GEN-LAST:event_rSMaterialButtonCircle1ActionPerformed
 
     /**
      * @param args the command line arguments
