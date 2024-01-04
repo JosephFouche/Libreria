@@ -6,11 +6,17 @@ package libreria;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import javax.swing.table.DefaultTableModel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PiePlot;
 import org.jfree.data.general.DefaultPieDataset;
+import java.sql.Date;
 
 /**
  *
@@ -21,21 +27,139 @@ public class HomePage extends javax.swing.JFrame {
     /**
      * Creates new form HomePage
      */
+    Color mouseEnterColor = new Color(0,0,0);
+    Color mouseExitColor = new Color(51,51,51);
+    Color mouseExitColorLogout = new Color(102,102,255);
+    DefaultTableModel model;
     public HomePage() {
         initComponents();
         showPieChart();
+        detallesEstudianteATablas();
+        detallesDeLibrosATablas();
+        ponerDatosalMarco();
     }
+    //mandar los detalles de los estudiantes a tabla
+    public void detallesEstudianteATablas(){
+        
+        try{
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3307/libreria_ms","root","");
+            Statement st = (Statement) con.createStatement();
+            ResultSet rs = st.executeQuery("select * from detalles_estudiante");
+             
+            while(rs.next()){//This loop iterates through the rows of the result set (rs). Each iteration represents a row in the database table.
+                //Inside the loop, data from each column of the current row is extracted using methods like rs.getString and rs.getInt.
+                
+                String estudianteId  = rs.getString("id_estudiante");//libroId: Retrieves the value of the "libro_id" column as a string.
+                String estudianteNombre  = rs.getString("nombre");//libroNombre: Retrieves the value of the "libro_nombre" column as a string.
+                String curso  = rs.getString("curso");//Retrieves the value of the "autor" column as a string.
+                String turno  = rs.getString("turno");//Retrieves the value of the "cantidad" column as an integer.
+                
+                /*The extracted values are then used to create an object array (Object[] obj), where each element of the array corresponds to 
+                a column in the database table. 
+                The order of elements in the array matches the order in which the columns were retrieved from the result set.*/
+                Object [] obj = {estudianteId, estudianteNombre, curso, turno};
+                model = (DefaultTableModel)tbl_DetallesEstudiantes.getModel();
+                model.addRow(obj);
+                
+                /*In summary, this code fetches details of books from a database table ("libro_detalles") 
+                        and dynamically adds rows to a JTable (tbl_DetallesLibros) in a Swing GUI application.
+                                Each row in the JTable represents a book, and the columns in the table correspond to
+                                        the attributes of the books (e.g., libroId, libroNombre, autor, cantidad).*/
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    
+    }
+    //mandar los detalles de los libros a tabla
+    public void detallesDeLibrosATablas(){
+        
+        try{
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3307/libreria_ms","root","");
+            Statement st = (Statement) con.createStatement();
+            ResultSet rs = st.executeQuery("select * from libro_detalles");
+             
+            while(rs.next()){//This loop iterates through the rows of the result set (rs). Each iteration represents a row in the database table.
+                //Inside the loop, data from each column of the current row is extracted using methods like rs.getString and rs.getInt.
+                
+                String libroId  = rs.getString("libro_id");//libroId: Retrieves the value of the "libro_id" column as a string.
+                String libroNombre  = rs.getString("libro_nombre");//libroNombre: Retrieves the value of the "libro_nombre" column as a string.
+                String autor  = rs.getString("autor");//Retrieves the value of the "autor" column as a string.
+                int cantidad  = rs.getInt("cantidad");//Retrieves the value of the "cantidad" column as an integer.
+                
+                /*The extracted values are then used to create an object array (Object[] obj), where each element of the array corresponds to 
+                a column in the database table. 
+                The order of elements in the array matches the order in which the columns were retrieved from the result set.*/
+                Object [] obj = {libroId, libroNombre, autor, cantidad};
+                model = (DefaultTableModel)tbl_DetallesLibros.getModel();
+                model.addRow(obj);
+                
+                /*In summary, this code fetches details of books from a database table ("libro_detalles") 
+                        and dynamically adds rows to a JTable (tbl_DetallesLibros) in a Swing GUI application.
+                                Each row in the JTable represents a book, and the columns in the table correspond to
+                                        the attributes of the books (e.g., libroId, libroNombre, autor, cantidad).*/
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    
+    }
+    public void ponerDatosalMarco(){
+    
+        Statement st = null;
+        ResultSet rs = null;
+        
+        long l = System.currentTimeMillis();
+        Date diadeHoy = new Date(l);
+        
+        try{
+            Connection con  =DBConnection.getConnection();
+            st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            rs = st.executeQuery("select * from libro_detalles");
+            rs.last();
+            lbl_marcoLibros.setText(Integer.toString(rs.getRow()));
+            
+            rs = st.executeQuery("select * from detalles_estudiante");
+            rs.last();
+            lbl_marcoEstudiantes.setText(Integer.toString(rs.getRow()));
+            
+            rs = st.executeQuery("select * from libros_prestados_detalles where status = '"+"Pendiente"+"'");
+            rs.last();
+            lbl_ChartPrestados.setText(Integer.toString(rs.getRow()));
+            
+            rs = st.executeQuery("select * from libros_prestados_detalles where devolucion < '"+diadeHoy+"'and status = '"+"Pendiente"+"'");
+            rs.last();
+            lbl_ChartMorosos.setText(Integer.toString(rs.getRow()));
+            
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+        
+        
+    
 public void showPieChart(){
         
         //create dataset
       DefaultPieDataset barDataset = new DefaultPieDataset( );
-      barDataset.setValue("IPhone 5s" , Double.valueOf(20));  
-      barDataset.setValue("SamSung Grand" , Double.valueOf(20));   
-      barDataset.setValue("MotoG" , Double.valueOf(40));    
-      barDataset.setValue("Nokia Lumia" , Double.valueOf(10));  
+      
+      try {
+          Connection con = DBConnection.getConnection();
+          String sql = "select libro_nombre , count(*) as prestamo_Conteo from libros_prestados_detalles group by libro_id";
+          Statement st = con.createStatement();
+          ResultSet rs = st.executeQuery(sql);
+          while(rs.next()){
+              barDataset.setValue(rs.getString("libro_nombre"), Double.valueOf(rs.getDouble("prestamo_Conteo")));
+          }
+      }catch(Exception e){
+          e.printStackTrace();
+      }
+        
       
       //create chart
-       JFreeChart piechart = ChartFactory.createPieChart("mobile sales",barDataset, false,true,false);//explain
+       JFreeChart piechart = ChartFactory.createPieChart("Detalles de Libros Prestados",barDataset, false,true,false);//explain
       
         PiePlot piePlot =(PiePlot) piechart.getPlot();
       
@@ -161,23 +285,23 @@ public void showPieChart(){
         jPanel48 = new javax.swing.JPanel();
         jPanel49 = new javax.swing.JPanel();
         jPanel50 = new javax.swing.JPanel();
-        jLabel49 = new javax.swing.JLabel();
+        lbl_marcoLibros = new javax.swing.JLabel();
         jLabel50 = new javax.swing.JLabel();
         jLabel51 = new javax.swing.JLabel();
         jPanel51 = new javax.swing.JPanel();
-        jLabel52 = new javax.swing.JLabel();
+        lbl_marcoEstudiantes = new javax.swing.JLabel();
         jLabel53 = new javax.swing.JLabel();
         jPanel52 = new javax.swing.JPanel();
-        jLabel54 = new javax.swing.JLabel();
+        lbl_ChartPrestados = new javax.swing.JLabel();
         jLabel55 = new javax.swing.JLabel();
         jPanel53 = new javax.swing.JPanel();
-        jLabel56 = new javax.swing.JLabel();
+        lbl_ChartMorosos = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        rSTableMetro1 = new rojerusan.RSTableMetro();
+        tbl_DetallesEstudiantes = new rojerusan.RSTableMetro();
         jLabel57 = new javax.swing.JLabel();
         jLabel58 = new javax.swing.JLabel();
         jScrollPane2 = new javax.swing.JScrollPane();
-        rSTableMetro2 = new rojerusan.RSTableMetro();
+        tbl_DetallesLibros = new rojerusan.RSTableMetro();
         panelPieChart = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -275,7 +399,7 @@ public void showPieChart(){
         jPanel5.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel7.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel7.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel7.setForeground(new java.awt.Color(153, 153, 153));
         jLabel7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Library_26px_1.png"))); // NOI18N
         jLabel7.setText("   Panel");
         jPanel5.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 150, -1));
@@ -632,9 +756,20 @@ public void showPieChart(){
         jPanel37.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel40.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel40.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel40.setForeground(java.awt.Color.lightGray);
         jLabel40.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Book_26px.png"))); // NOI18N
         jLabel40.setText(" Administrar libros");
+        jLabel40.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabel40MouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jLabel40MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                jLabel40MouseExited(evt);
+            }
+        });
         jPanel37.add(jLabel40, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 150, -1));
 
         jPanel3.add(jPanel37, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 140, 340, 60));
@@ -643,9 +778,20 @@ public void showPieChart(){
         jPanel38.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel39.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel39.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel39.setForeground(java.awt.Color.lightGray);
         jLabel39.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Read_Online_26px.png"))); // NOI18N
         jLabel39.setText("  Administrar estudiantes");
+        jLabel39.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabel39MouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jLabel39MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                jLabel39MouseExited(evt);
+            }
+        });
         jPanel38.add(jLabel39, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 190, -1));
 
         jPanel39.setBackground(new java.awt.Color(255, 51, 51));
@@ -665,9 +811,20 @@ public void showPieChart(){
         jPanel40.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel42.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel42.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel42.setForeground(java.awt.Color.lightGray);
         jLabel42.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Sell_26px.png"))); // NOI18N
-        jLabel42.setText("   Libros de Ediciones");
+        jLabel42.setText("   Libros Prestados");
+        jLabel42.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabel42MouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jLabel42MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                jLabel42MouseExited(evt);
+            }
+        });
         jPanel40.add(jLabel42, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 200, -1));
 
         jPanel3.add(jPanel40, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 260, 340, 60));
@@ -676,9 +833,20 @@ public void showPieChart(){
         jPanel41.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel43.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel43.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel43.setForeground(java.awt.Color.lightGray);
         jLabel43.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Return_Purchase_26px.png"))); // NOI18N
         jLabel43.setText("  Regresar Libro");
+        jLabel43.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabel43MouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jLabel43MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                jLabel43MouseExited(evt);
+            }
+        });
         jPanel41.add(jLabel43, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 150, -1));
 
         jPanel3.add(jPanel41, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 320, 340, 60));
@@ -687,9 +855,20 @@ public void showPieChart(){
         jPanel42.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel44.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel44.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel44.setForeground(java.awt.Color.lightGray);
         jLabel44.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_View_Details_26px.png"))); // NOI18N
         jLabel44.setText("   Ver Registros");
+        jLabel44.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabel44MouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jLabel44MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                jLabel44MouseExited(evt);
+            }
+        });
         jPanel42.add(jLabel44, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 150, -1));
 
         jPanel3.add(jPanel42, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 380, 340, 60));
@@ -698,9 +877,20 @@ public void showPieChart(){
         jPanel43.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel45.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel45.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel45.setForeground(java.awt.Color.lightGray);
         jLabel45.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Books_26px.png"))); // NOI18N
-        jLabel45.setText("Ver libros publicados");
+        jLabel45.setText("Ver libros prestados");
+        jLabel45.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabel45MouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jLabel45MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                jLabel45MouseExited(evt);
+            }
+        });
         jPanel43.add(jLabel45, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 150, -1));
 
         jPanel44.setBackground(new java.awt.Color(255, 51, 51));
@@ -720,9 +910,20 @@ public void showPieChart(){
         jPanel45.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel47.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel47.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel47.setForeground(java.awt.Color.lightGray);
         jLabel47.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Conference_26px.png"))); // NOI18N
         jLabel47.setText("Lista de Morosos");
+        jLabel47.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabel47MouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jLabel47MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                jLabel47MouseExited(evt);
+            }
+        });
         jPanel45.add(jLabel47, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 150, -1));
 
         jPanel3.add(jPanel45, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 500, 340, 60));
@@ -731,9 +932,20 @@ public void showPieChart(){
         jPanel46.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jLabel48.setFont(new java.awt.Font("Times New Roman", 0, 14)); // NOI18N
-        jLabel48.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel48.setForeground(java.awt.Color.lightGray);
         jLabel48.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Exit_26px_1.png"))); // NOI18N
         jLabel48.setText("Salir");
+        jLabel48.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jLabel48MouseClicked(evt);
+            }
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                jLabel48MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                jLabel48MouseExited(evt);
+            }
+        });
         jPanel46.add(jLabel48, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 20, 150, -1));
 
         jPanel3.add(jPanel46, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 570, 340, 60));
@@ -741,6 +953,7 @@ public void showPieChart(){
         getContentPane().add(jPanel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 60, 340, 720));
 
         jPanel47.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel47.setForeground(java.awt.Color.lightGray);
         jPanel47.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         jPanel48.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -752,10 +965,10 @@ public void showPieChart(){
 
         jPanel50.setBorder(javax.swing.BorderFactory.createMatteBorder(15, 0, 0, 0, new java.awt.Color(255, 51, 51)));
 
-        jLabel49.setFont(new java.awt.Font("Times New Roman", 0, 48)); // NOI18N
-        jLabel49.setForeground(new java.awt.Color(102, 102, 102));
-        jLabel49.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Book_Shelf_50px.png"))); // NOI18N
-        jLabel49.setText("10");
+        lbl_marcoLibros.setFont(new java.awt.Font("Times New Roman", 0, 48)); // NOI18N
+        lbl_marcoLibros.setForeground(new java.awt.Color(102, 102, 102));
+        lbl_marcoLibros.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Book_Shelf_50px.png"))); // NOI18N
+        lbl_marcoLibros.setText("10");
 
         javax.swing.GroupLayout jPanel50Layout = new javax.swing.GroupLayout(jPanel50);
         jPanel50.setLayout(jPanel50Layout);
@@ -763,14 +976,14 @@ public void showPieChart(){
             jPanel50Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel50Layout.createSequentialGroup()
                 .addGap(44, 44, 44)
-                .addComponent(jLabel49, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(lbl_marcoLibros, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(86, Short.MAX_VALUE))
         );
         jPanel50Layout.setVerticalGroup(
             jPanel50Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel50Layout.createSequentialGroup()
                 .addGap(38, 38, 38)
-                .addComponent(jLabel49)
+                .addComponent(lbl_marcoLibros)
                 .addContainerGap(31, Short.MAX_VALUE))
         );
 
@@ -788,10 +1001,10 @@ public void showPieChart(){
 
         jPanel51.setBorder(javax.swing.BorderFactory.createMatteBorder(15, 0, 0, 0, new java.awt.Color(102, 102, 255)));
 
-        jLabel52.setFont(new java.awt.Font("Times New Roman", 0, 48)); // NOI18N
-        jLabel52.setForeground(new java.awt.Color(102, 102, 102));
-        jLabel52.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_People_50px.png"))); // NOI18N
-        jLabel52.setText("10");
+        lbl_marcoEstudiantes.setFont(new java.awt.Font("Times New Roman", 0, 48)); // NOI18N
+        lbl_marcoEstudiantes.setForeground(new java.awt.Color(102, 102, 102));
+        lbl_marcoEstudiantes.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_People_50px.png"))); // NOI18N
+        lbl_marcoEstudiantes.setText("10");
 
         javax.swing.GroupLayout jPanel51Layout = new javax.swing.GroupLayout(jPanel51);
         jPanel51.setLayout(jPanel51Layout);
@@ -799,14 +1012,14 @@ public void showPieChart(){
             jPanel51Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel51Layout.createSequentialGroup()
                 .addGap(44, 44, 44)
-                .addComponent(jLabel52, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(lbl_marcoEstudiantes, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(86, Short.MAX_VALUE))
         );
         jPanel51Layout.setVerticalGroup(
             jPanel51Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel51Layout.createSequentialGroup()
                 .addGap(38, 38, 38)
-                .addComponent(jLabel52)
+                .addComponent(lbl_marcoEstudiantes)
                 .addContainerGap(31, Short.MAX_VALUE))
         );
 
@@ -819,10 +1032,10 @@ public void showPieChart(){
 
         jPanel52.setBorder(javax.swing.BorderFactory.createMatteBorder(15, 0, 0, 0, new java.awt.Color(102, 102, 255)));
 
-        jLabel54.setFont(new java.awt.Font("Times New Roman", 0, 48)); // NOI18N
-        jLabel54.setForeground(new java.awt.Color(102, 102, 102));
-        jLabel54.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Sell_26px.png"))); // NOI18N
-        jLabel54.setText("10");
+        lbl_ChartPrestados.setFont(new java.awt.Font("Times New Roman", 0, 48)); // NOI18N
+        lbl_ChartPrestados.setForeground(new java.awt.Color(102, 102, 102));
+        lbl_ChartPrestados.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_Sell_26px.png"))); // NOI18N
+        lbl_ChartPrestados.setText("10");
 
         javax.swing.GroupLayout jPanel52Layout = new javax.swing.GroupLayout(jPanel52);
         jPanel52.setLayout(jPanel52Layout);
@@ -830,14 +1043,14 @@ public void showPieChart(){
             jPanel52Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel52Layout.createSequentialGroup()
                 .addGap(44, 44, 44)
-                .addComponent(jLabel54, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(lbl_ChartPrestados, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(86, Short.MAX_VALUE))
         );
         jPanel52Layout.setVerticalGroup(
             jPanel52Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel52Layout.createSequentialGroup()
                 .addGap(38, 38, 38)
-                .addComponent(jLabel54)
+                .addComponent(lbl_ChartPrestados)
                 .addContainerGap(31, Short.MAX_VALUE))
         );
 
@@ -850,10 +1063,10 @@ public void showPieChart(){
 
         jPanel53.setBorder(javax.swing.BorderFactory.createMatteBorder(15, 0, 0, 0, new java.awt.Color(255, 51, 51)));
 
-        jLabel56.setFont(new java.awt.Font("Times New Roman", 0, 48)); // NOI18N
-        jLabel56.setForeground(new java.awt.Color(102, 102, 102));
-        jLabel56.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_List_of_Thumbnails_50px.png"))); // NOI18N
-        jLabel56.setText("10");
+        lbl_ChartMorosos.setFont(new java.awt.Font("Times New Roman", 0, 48)); // NOI18N
+        lbl_ChartMorosos.setForeground(new java.awt.Color(102, 102, 102));
+        lbl_ChartMorosos.setIcon(new javax.swing.ImageIcon(getClass().getResource("/libreria/adminIcons/icons8_List_of_Thumbnails_50px.png"))); // NOI18N
+        lbl_ChartMorosos.setText("10");
 
         javax.swing.GroupLayout jPanel53Layout = new javax.swing.GroupLayout(jPanel53);
         jPanel53.setLayout(jPanel53Layout);
@@ -861,47 +1074,43 @@ public void showPieChart(){
             jPanel53Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel53Layout.createSequentialGroup()
                 .addGap(44, 44, 44)
-                .addComponent(jLabel56, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(lbl_ChartMorosos, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(76, Short.MAX_VALUE))
         );
         jPanel53Layout.setVerticalGroup(
             jPanel53Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel53Layout.createSequentialGroup()
                 .addGap(38, 38, 38)
-                .addComponent(jLabel56)
+                .addComponent(lbl_ChartMorosos)
                 .addContainerGap(31, Short.MAX_VALUE))
         );
 
         jPanel47.add(jPanel53, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 270, 260, 140));
 
-        rSTableMetro1.setModel(new javax.swing.table.DefaultTableModel(
+        tbl_DetallesEstudiantes.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {"1 ", "Penelope", "ABC", "sds"},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+
             },
             new String [] {
                 "ID", "Nombre", "Curso", "Rama"
             }
         ));
-        rSTableMetro1.setColorBackgoundHead(new java.awt.Color(102, 102, 255));
-        rSTableMetro1.setColorBordeFilas(new java.awt.Color(102, 102, 255));
-        rSTableMetro1.setColorFilasBackgound2(new java.awt.Color(255, 255, 255));
-        rSTableMetro1.setColorSelBackgound(new java.awt.Color(255, 51, 51));
-        rSTableMetro1.setFont(new java.awt.Font("Times New Roman", 0, 24)); // NOI18N
-        rSTableMetro1.setFuenteFilas(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
-        rSTableMetro1.setFuenteFilasSelect(new java.awt.Font("Times New Roman", 1, 18)); // NOI18N
-        rSTableMetro1.setFuenteHead(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
-        rSTableMetro1.setRowHeight(40);
-        jScrollPane1.setViewportView(rSTableMetro1);
+        tbl_DetallesEstudiantes.setColorBackgoundHead(new java.awt.Color(102, 102, 255));
+        tbl_DetallesEstudiantes.setColorBordeFilas(new java.awt.Color(102, 102, 255));
+        tbl_DetallesEstudiantes.setColorFilasBackgound2(new java.awt.Color(255, 255, 255));
+        tbl_DetallesEstudiantes.setColorSelBackgound(new java.awt.Color(255, 51, 51));
+        tbl_DetallesEstudiantes.setFont(new java.awt.Font("Times New Roman", 0, 24)); // NOI18N
+        tbl_DetallesEstudiantes.setFuenteFilas(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
+        tbl_DetallesEstudiantes.setFuenteFilasSelect(new java.awt.Font("Times New Roman", 1, 18)); // NOI18N
+        tbl_DetallesEstudiantes.setFuenteHead(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
+        tbl_DetallesEstudiantes.setRowHeight(40);
+        jScrollPane1.setViewportView(tbl_DetallesEstudiantes);
 
         jPanel47.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 450, 530, 90));
 
         jLabel57.setFont(new java.awt.Font("Times New Roman", 1, 14)); // NOI18N
         jLabel57.setForeground(new java.awt.Color(102, 102, 102));
-        jLabel57.setText("N° de Libros de Ediciones");
+        jLabel57.setText("N° de Libros Prestados");
         jPanel47.add(jLabel57, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 250, 160, -1));
 
         jLabel58.setFont(new java.awt.Font("Times New Roman", 1, 14)); // NOI18N
@@ -909,28 +1118,24 @@ public void showPieChart(){
         jLabel58.setText("Detalles de Libros");
         jPanel47.add(jLabel58, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 550, 160, -1));
 
-        rSTableMetro2.setModel(new javax.swing.table.DefaultTableModel(
+        tbl_DetallesLibros.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {"1 ", "Penelope", "ABC", "sds"},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+
             },
             new String [] {
-                "ID", "Nombre", "Curso", "Rama"
+                "Libro ID", "Nombre", "Autor", "Cantidad"
             }
         ));
-        rSTableMetro2.setColorBackgoundHead(new java.awt.Color(102, 102, 255));
-        rSTableMetro2.setColorBordeFilas(new java.awt.Color(102, 102, 255));
-        rSTableMetro2.setColorFilasBackgound2(new java.awt.Color(255, 255, 255));
-        rSTableMetro2.setColorSelBackgound(new java.awt.Color(255, 51, 51));
-        rSTableMetro2.setFont(new java.awt.Font("Times New Roman", 0, 24)); // NOI18N
-        rSTableMetro2.setFuenteFilas(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
-        rSTableMetro2.setFuenteFilasSelect(new java.awt.Font("Times New Roman", 1, 18)); // NOI18N
-        rSTableMetro2.setFuenteHead(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
-        rSTableMetro2.setRowHeight(40);
-        jScrollPane2.setViewportView(rSTableMetro2);
+        tbl_DetallesLibros.setColorBackgoundHead(new java.awt.Color(102, 102, 255));
+        tbl_DetallesLibros.setColorBordeFilas(new java.awt.Color(102, 102, 255));
+        tbl_DetallesLibros.setColorFilasBackgound2(new java.awt.Color(255, 255, 255));
+        tbl_DetallesLibros.setColorSelBackgound(new java.awt.Color(255, 51, 51));
+        tbl_DetallesLibros.setFont(new java.awt.Font("Times New Roman", 0, 24)); // NOI18N
+        tbl_DetallesLibros.setFuenteFilas(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
+        tbl_DetallesLibros.setFuenteFilasSelect(new java.awt.Font("Times New Roman", 1, 18)); // NOI18N
+        tbl_DetallesLibros.setFuenteHead(new java.awt.Font("Times New Roman", 0, 18)); // NOI18N
+        tbl_DetallesLibros.setRowHeight(40);
+        jScrollPane2.setViewportView(tbl_DetallesLibros);
 
         jPanel47.add(jScrollPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 580, 530, 90));
 
@@ -946,6 +1151,120 @@ public void showPieChart(){
     private void jLabel2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel2MouseClicked
         System.exit(0);
     }//GEN-LAST:event_jLabel2MouseClicked
+
+    private void jLabel40MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel40MouseClicked
+        
+        AdministrarLibros libros = new AdministrarLibros();
+        libros.setVisible(true);
+        dispose();
+    }//GEN-LAST:event_jLabel40MouseClicked
+
+    private void jLabel40MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel40MouseExited
+        jPanel37.setBackground(mouseExitColor);
+    }//GEN-LAST:event_jLabel40MouseExited
+
+    private void jLabel40MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel40MouseEntered
+        jPanel37.setBackground(mouseEnterColor);
+    }//GEN-LAST:event_jLabel40MouseEntered
+
+    private void jLabel39MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel39MouseEntered
+        jPanel38.setBackground(mouseEnterColor);
+    }//GEN-LAST:event_jLabel39MouseEntered
+
+    private void jLabel39MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel39MouseExited
+        jPanel38.setBackground(mouseExitColor);
+    }//GEN-LAST:event_jLabel39MouseExited
+
+    private void jLabel42MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel42MouseEntered
+        jPanel40.setBackground(mouseEnterColor);
+    }//GEN-LAST:event_jLabel42MouseEntered
+
+    private void jLabel42MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel42MouseExited
+        jPanel40.setBackground(mouseExitColor);
+    }//GEN-LAST:event_jLabel42MouseExited
+
+    private void jLabel43MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel43MouseClicked
+        DevolverLibro devolver = new DevolverLibro();
+        devolver.setVisible(true);
+        dispose();
+    }//GEN-LAST:event_jLabel43MouseClicked
+
+    private void jLabel43MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel43MouseEntered
+        jPanel41.setBackground(mouseEnterColor);
+    }//GEN-LAST:event_jLabel43MouseEntered
+
+    private void jLabel43MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel43MouseExited
+        jPanel41.setBackground(mouseExitColor);
+    }//GEN-LAST:event_jLabel43MouseExited
+
+    private void jLabel44MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel44MouseEntered
+        jPanel42.setBackground(mouseEnterColor);
+    }//GEN-LAST:event_jLabel44MouseEntered
+
+    private void jLabel44MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel44MouseExited
+        jPanel42.setBackground(mouseExitColor);
+    }//GEN-LAST:event_jLabel44MouseExited
+
+    private void jLabel45MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel45MouseEntered
+        jPanel43.setBackground(mouseEnterColor);
+    }//GEN-LAST:event_jLabel45MouseEntered
+
+    private void jLabel45MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel45MouseExited
+        jPanel43.setBackground(mouseExitColor);
+    }//GEN-LAST:event_jLabel45MouseExited
+
+    private void jLabel47MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel47MouseEntered
+        jPanel45.setBackground(mouseEnterColor);
+    }//GEN-LAST:event_jLabel47MouseEntered
+
+    private void jLabel47MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel47MouseExited
+        jPanel45.setBackground(mouseExitColor);
+    }//GEN-LAST:event_jLabel47MouseExited
+
+    private void jLabel42MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel42MouseClicked
+        LibrosE libros = new LibrosE();
+        libros.setVisible(true);
+        dispose();
+    }//GEN-LAST:event_jLabel42MouseClicked
+
+    private void jLabel39MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel39MouseClicked
+        AdministrarEstudiantes admin = new AdministrarEstudiantes();
+        admin.setVisible(true);
+        dispose();
+        
+    }//GEN-LAST:event_jLabel39MouseClicked
+
+    private void jLabel44MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel44MouseClicked
+        VerTodosRegistros ver = new VerTodosRegistros();
+        ver.setVisible(true);
+        dispose();
+    }//GEN-LAST:event_jLabel44MouseClicked
+
+    private void jLabel45MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel45MouseClicked
+        VerListaDePrestados verlista = new VerListaDePrestados();
+        verlista.setVisible(true);
+        dispose();
+    }//GEN-LAST:event_jLabel45MouseClicked
+
+    private void jLabel47MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel47MouseClicked
+        ListaDeDeudores deuda = new ListaDeDeudores();
+        deuda.setVisible(true);
+        dispose();
+    }//GEN-LAST:event_jLabel47MouseClicked
+
+    private void jLabel48MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel48MouseClicked
+         PaginaAcceso acceso = new PaginaAcceso();
+         acceso.setVisible(true);
+         dispose();
+    }//GEN-LAST:event_jLabel48MouseClicked
+
+    private void jLabel48MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel48MouseEntered
+        jPanel46.setBackground(mouseEnterColor);
+    }//GEN-LAST:event_jLabel48MouseEntered
+
+    private void jLabel48MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel48MouseExited
+        jPanel46.setBackground(mouseExitColorLogout);
+    }//GEN-LAST:event_jLabel48MouseExited
 
     /**
      * @param args the command line arguments
@@ -1026,15 +1345,11 @@ public void showPieChart(){
     private javax.swing.JLabel jLabel46;
     private javax.swing.JLabel jLabel47;
     private javax.swing.JLabel jLabel48;
-    private javax.swing.JLabel jLabel49;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel50;
     private javax.swing.JLabel jLabel51;
-    private javax.swing.JLabel jLabel52;
     private javax.swing.JLabel jLabel53;
-    private javax.swing.JLabel jLabel54;
     private javax.swing.JLabel jLabel55;
-    private javax.swing.JLabel jLabel56;
     private javax.swing.JLabel jLabel57;
     private javax.swing.JLabel jLabel58;
     private javax.swing.JLabel jLabel6;
@@ -1096,8 +1411,12 @@ public void showPieChart(){
     private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JLabel lbl_ChartMorosos;
+    private javax.swing.JLabel lbl_ChartPrestados;
+    private javax.swing.JLabel lbl_marcoEstudiantes;
+    private javax.swing.JLabel lbl_marcoLibros;
     private javax.swing.JPanel panelPieChart;
-    private rojerusan.RSTableMetro rSTableMetro1;
-    private rojerusan.RSTableMetro rSTableMetro2;
+    private rojerusan.RSTableMetro tbl_DetallesEstudiantes;
+    private rojerusan.RSTableMetro tbl_DetallesLibros;
     // End of variables declaration//GEN-END:variables
 }
